@@ -3,13 +3,16 @@ Garmin Dashboard API
 FastAPI backend for Garmin Connect data
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import date
 from garmin_service import GarminService
 from pydantic import BaseModel
 import traceback
 import logging
+from sqlalchemy.orm import Session
+from database import get_db, init_db
+from db_service import DatabaseService
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -39,6 +42,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Initialize database
+try:
+    init_db()
+    logger.info("Database initialized successfully")
+except Exception as e:
+    logger.error(f"Error initializing database: {e}")
 
 # Initialize Garmin service
 try:
@@ -168,13 +178,14 @@ async def get_activities(target_date: str):
 
 
 @app.get("/api/data/{target_date}", tags=["Combined Data"])
-async def get_all_data(target_date: str):
+async def get_all_data(target_date: str, db: Session = Depends(get_db)):
     """
     Get all data for a specific date
     
     - **target_date**: Date in YYYY-MM-DD format (e.g., 2025-12-25)
     
     Returns combined data including heart rate, stress, sleep, and activities.
+    Data is automatically saved to the database.
     """
     logger.info(f"API request received for date: {target_date}")
     if not garmin_service:
@@ -185,6 +196,15 @@ async def get_all_data(target_date: str):
         data = garmin_service.get_all_data(target_date)
         logger.info(f"Successfully retrieved data for {target_date}")
         logger.debug(f"Data keys: {data.keys() if isinstance(data, dict) else 'not a dict'}")
+        
+        # Save all data to database
+        try:
+            DatabaseService.save_all_garmin_data(db, target_date, data)
+            logger.info(f"Successfully saved data to database for {target_date}")
+        except Exception as db_error:
+            logger.error(f"Error saving to database: {db_error}", exc_info=True)
+            # Continue even if database save fails
+        
         return {
             "success": True,
             "data": data

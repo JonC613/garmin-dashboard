@@ -10,6 +10,7 @@ A full-stack web application for visualizing health and fitness data from Garmin
 - **Activity Tracking**: Steps, calories, distance, and intensity minutes
 - **Body Battery**: Energy level monitoring throughout the day
 - **Resting Heart Rate**: Daily resting HR with min/max values
+- **PostgreSQL Database**: Automatic data persistence
 
 ## Tech Stack
 
@@ -18,6 +19,8 @@ A full-stack web application for visualizing health and fitness data from Garmin
 - **FastAPI** - Modern web framework
 - **garminconnect** - Garmin Connect API client
 - **uvicorn** - ASGI server
+- **SQLAlchemy** - Database ORM
+- **PostgreSQL** - Database for storing health data
 
 ### Frontend
 - **React 18** with TypeScript
@@ -26,12 +29,71 @@ A full-stack web application for visualizing health and fitness data from Garmin
 - **Recharts** - Data visualization
 - **Axios** - HTTP client
 
-## Setup
+## Quick Start with Docker (Recommended)
+
+### Prerequisites
+- Docker Desktop
+- Garmin Connect account
+
+### Setup
+
+1. **Clone or navigate to the project:**
+```bash
+cd garmin-dashboard
+```
+
+2. **Add your Garmin credentials:**
+Create `backend/garmin_credentials.json`:
+```json
+{
+  "email": "your-email@example.com",
+  "password": "your-password"
+}
+```
+
+3. **Start all services:**
+```powershell
+.\docker-start.ps1
+```
+
+Or manually:
+```bash
+docker-compose up --build
+```
+
+4. **Access the application:**
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+
+### Docker Commands
+
+```bash
+# Start services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Restart a service
+docker-compose restart backend
+
+# Rebuild after code changes
+docker-compose up --build
+```
+
+---
+
+## Manual Setup (Without Docker)
 
 ### Prerequisites
 - Python 3.12 or higher
 - Node.js 18 or higher
 - Garmin Connect account
+- **PostgreSQL 12 or higher**
 
 ### Backend Setup
 
@@ -54,7 +116,31 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-5. Create `garmin_credentials.json` with your Garmin Connect credentials:
+5. **Setup PostgreSQL Database:**
+
+Create a PostgreSQL database:
+```sql
+CREATE DATABASE garmin_dashboard;
+```
+
+6. **Configure Environment Variables:**
+
+Copy the example environment file:
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your database connection:
+```env
+DATABASE_URL=postgresql://username:password@localhost:5432/garmin_dashboard
+```
+
+7. **Initialize Database Tables:**
+```bash
+python init_db.py init
+```
+
+8. Create `garmin_credentials.json` with your Garmin Connect credentials:
 ```json
 {
   "email": "your-email@example.com",
@@ -62,12 +148,14 @@ pip install -r requirements.txt
 }
 ```
 
-6. Start the backend server:
+9. Start the backend server:
 ```bash
 uvicorn api:app --reload --port 8000
 ```
 
 The backend will be available at http://localhost:8000
+
+**Note:** All data fetched from Garmin Connect is automatically saved to the PostgreSQL database.
 
 ### Frontend Setup
 
