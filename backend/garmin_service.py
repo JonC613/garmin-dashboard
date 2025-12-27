@@ -126,18 +126,31 @@ class GarminService:
             if not sleep_data:
                 return None
             
+            # Extract daily sleep DTO for cleaner access
+            daily_dto = sleep_data.get('dailySleepDTO', {})
+            
+            # Extract SpO2 data
+            spo2_data = sleep_data.get('wellnessSpO2SleepSummaryDTO', {})
+            
             return {
                 'date': target_date,
-                'sleep_start': sleep_data.get('sleepStartTimestampLocal'),
-                'sleep_end': sleep_data.get('sleepEndTimestampLocal'),
-                'total_sleep_seconds': sleep_data.get('sleepTimeSeconds', 0),
-                'deep_sleep_seconds': sleep_data.get('deepSleepSeconds', 0),
-                'light_sleep_seconds': sleep_data.get('lightSleepSeconds', 0),
-                'rem_sleep_seconds': sleep_data.get('remSleepSeconds', 0),
-                'awake_seconds': sleep_data.get('awakeSleepSeconds', 0),
-                'sleep_score': sleep_data.get('overallSleepScore'),
-                'avg_respiration': sleep_data.get('averageRespirationValue'),
-                'avg_spo2': sleep_data.get('averageSpO2Value')
+                'sleep_start': daily_dto.get('sleepStartTimestampLocal'),
+                'sleep_end': daily_dto.get('sleepEndTimestampLocal'),
+                'total_sleep_seconds': daily_dto.get('sleepTimeSeconds', 0),
+                'deep_sleep_seconds': daily_dto.get('deepSleepSeconds', 0),
+                'light_sleep_seconds': daily_dto.get('lightSleepSeconds', 0),
+                'rem_sleep_seconds': daily_dto.get('remSleepSeconds', 0),
+                'awake_seconds': daily_dto.get('awakeSleepSeconds', 0),
+                'sleep_score': daily_dto.get('overallSleepScore'),
+                'sleep_quality': daily_dto.get('sleepQualityTypeName'),
+                'avg_respiration': daily_dto.get('averageRespirationValue'),
+                'avg_spo2': spo2_data.get('averageSpO2Value'),
+                'lowest_spo2': spo2_data.get('lowestSpO2Value'),
+                'restless_moments': sleep_data.get('restlessMomentsCount'),
+                'body_battery_change': sleep_data.get('bodyBatteryChange'),
+                'avg_overnight_hrv': sleep_data.get('avgOvernightHrv'),
+                'hrv_status': sleep_data.get('hrvStatus'),
+                'resting_heart_rate': sleep_data.get('restingHeartRate')
             }
             
         except Exception as e:

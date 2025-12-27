@@ -24,8 +24,15 @@ export interface SleepData {
   rem_sleep_seconds: number;
   awake_seconds: number;
   sleep_score: number | null;
+  sleep_quality: string | null;
   avg_respiration: number | null;
   avg_spo2: number | null;
+  lowest_spo2: number | null;
+  restless_moments: number | null;
+  body_battery_change: number | null;
+  avg_overnight_hrv: number | null;
+  hrv_status: string | null;
+  resting_heart_rate: number | null;
 }
 
 export interface Activity {
