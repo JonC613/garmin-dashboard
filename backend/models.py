@@ -111,3 +111,13 @@ class RestingHeartRate(Base):
     max_hr = Column(Integer, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class HRV(Base):
+    __tablename__ = "hrv"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(Date, nullable=False, index=True)
+    datetime = Column(DateTime, nullable=False, index=True)
+    hrv_value = Column(Float, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())

@@ -5,20 +5,25 @@ import {
   Button,
   Card,
   Spinner,
-  Text
+  Text,
+  Tab,
+  TabList
 } from '@fluentui/react-components';
-import { Calendar24Regular, ArrowSync24Regular } from '@fluentui/react-icons';
+import { Calendar24Regular, ArrowSync24Regular, Chat24Regular, DataHistogram24Regular } from '@fluentui/react-icons';
 import { garminApi, DashboardData } from '../services/api';
 import { HeartRateChart } from './HeartRateChart';
 import { StressChart } from './StressChart';
 import { SleepChart } from './SleepChart';
 import { BodyBatteryChart } from './BodyBatteryChart';
 import { StepsCaloriesCard } from './StepsCaloriesCard';
+import { HRVChart } from './HRVChart';
+import { ChatWithData } from './ChatWithData';
 
 export const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTab, setSelectedTab] = useState<string>('dashboard');
   
   // Get today's date in local timezone
   const getTodayDate = () => {
@@ -83,7 +88,11 @@ export const Dashboard: React.FC = () => {
       ? data.body_battery[data.body_battery.length - 1].battery_level
       : null;
 
-    return { avgHr, avgStress, sleepHours, activityCount, restingHr, steps, calories, bodyBattery };
+    const avgHrv = data.hrv.length > 0
+      ? (data.hrv.reduce((sum, d) => sum + d.hrv_value, 0) / data.hrv.length).toFixed(1)
+      : null;
+
+    return { avgHr, avgStress, sleepHours, activityCount, restingHr, steps, calories, bodyBattery, avgHrv };
   };
 
   const stats = getSummaryStats();
@@ -115,44 +124,67 @@ export const Dashboard: React.FC = () => {
             Garmin Connect Dashboard
           </h1>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <Calendar24Regular />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={handleDateChange}
-              style={{
-                padding: '8px 12px',
-                border: '1px solid #d1d1d1',
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-            />
-            <Button 
-              icon={<ArrowSync24Regular />}
-              onClick={handleRefresh}
-              disabled={loading}
-            >
-              Refresh
-            </Button>
-          </div>
+          {/* Tabs */}
+          <TabList 
+            selectedValue={selectedTab} 
+            onTabSelect={(_, data) => setSelectedTab(data.value as string)}
+            style={{ marginBottom: '20px' }}
+          >
+            <Tab value="dashboard" icon={<DataHistogram24Regular />}>
+              Dashboard
+            </Tab>
+            <Tab value="chat" icon={<Chat24Regular />}>
+              Chat with Data
+            </Tab>
+          </TabList>
+          
+          {selectedTab === 'dashboard' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <Calendar24Regular />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={handleDateChange}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #d1d1d1',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
+              />
+              <Button 
+                icon={<ArrowSync24Regular />}
+                onClick={handleRefresh}
+                appearance="primary"
+              >
+                Refresh
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Summary Cards */}
-        {stats && !loading && (
-          <div style={{ 
-            maxWidth: '1400px', 
-            margin: '0 auto 20px auto',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '15px'
-          }}>
-            <Card style={{ padding: '20px', textAlign: 'center' }}>              <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Steps</div>
-              <div style={{ fontSize: '32px', color: '#0078d4', fontWeight: '600' }}>
-                {stats.steps.toLocaleString()}
-              </div>
-              <div style={{ fontSize: '12px', color: '#888' }}>today</div>
-            </Card>
+        {/* Chat with Data Tab */}
+        {selectedTab === 'chat' && <ChatWithData />}
+
+        {/* Dashboard Tab */}
+        {selectedTab === 'dashboard' && (
+          <>
+            {/* Summary Cards */}
+            {stats && !loading && (
+              <div style={{ 
+                maxWidth: '1400px', 
+                margin: '0 auto 20px auto',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '15px'
+              }}>
+                <Card style={{ padding: '20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Steps</div>
+                  <div style={{ fontSize: '32px', color: '#0078d4', fontWeight: '600' }}>
+                    {stats.steps.toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#888' }}>today</div>
+                </Card>
             
             <Card style={{ padding: '20px', textAlign: 'center' }}>
               <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Calories</div>
@@ -197,85 +229,90 @@ export const Dashboard: React.FC = () => {
             </Card>
             
             <Card style={{ padding: '20px', textAlign: 'center' }}>
-              <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Activities</div>
-              <div style={{ fontSize: '32px', color: '#27ae60', fontWeight: '600' }}>{stats.activityCount}</div>
-              <div style={{ fontSize: '12px', color: '#888' }}>recorded</div>
+              <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Average HRV</div>
+              <div style={{ fontSize: '32px', color: '#6366f1', fontWeight: '600' }}>
+                {stats.avgHrv !== null ? stats.avgHrv : 'N/A'}
+              </div>
+              <div style={{ fontSize: '12px', color: '#888' }}>ms</div>
             </Card>
           </div>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <div style={{ 
-            maxWidth: '1400px', 
-            margin: '0 auto',
-            textAlign: 'center',
-            padding: '60px'
-          }}>
-            <Spinner size="large" label="Loading Garmin data..." />
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div style={{ 
-            maxWidth: '1400px', 
-            margin: '0 auto',
-            backgroundColor: '#fef0f0',
-            padding: '20px',
-            borderRadius: '8px',
-            border: '1px solid #e74c3c'
-          }}>
-            <Text style={{ color: '#e74c3c' }}>Error: {error}</Text>
-          </div>
-        )}
-
-        {/* Charts */}
-        {data && !loading && (
-          <div style={{ 
-            maxWidth: '1400px', 
-            margin: '0 auto',
-            display: 'grid',
-            gap: '20px'
-          }}>
-            <StepsCaloriesCard data={data.steps} />
-            <BodyBatteryChart data={data.body_battery} />
-            <HeartRateChart data={data.heart_rate} />
-            <StressChart data={data.stress} />
-            <SleepChart data={data.sleep} />
-            
-            {/* Activities List */}
-            {data.activities.length > 0 && (
-              <Card style={{ padding: '20px' }}>
-                <h3 style={{ marginBottom: '15px' }}>Activities</h3>
-                <div style={{ display: 'grid', gap: '10px' }}>
-                  {data.activities.map((activity, index) => (
-                    <Card key={index} style={{ padding: '15px', backgroundColor: '#f9f9f9' }}>
-                      <div style={{ fontWeight: '600', color: '#27ae60', marginBottom: '5px' }}>
-                        {activity.activity_name}
-                      </div>
-                      <div style={{ fontSize: '14px', color: '#666' }}>
-                        <span style={{ marginRight: '15px' }}>
-                          Duration: {Math.round(activity.duration_seconds / 60)} min
-                        </span>
-                        {activity.avg_heart_rate && (
-                          <span style={{ marginRight: '15px' }}>
-                            Avg HR: {activity.avg_heart_rate} bpm
-                          </span>
-                        )}
-                        {activity.calories && (
-                          <span>Calories: {activity.calories}</span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#999', marginTop: '5px' }}>
-                        {activity.start_time}
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </Card>
             )}
-          </div>
+
+            {/* Loading State */}
+            {loading && (
+              <div style={{ 
+                maxWidth: '1400px', 
+                margin: '0 auto',
+                textAlign: 'center',
+                padding: '60px'
+              }}>
+                <Spinner size="large" label="Loading Garmin data..." />
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div style={{ 
+                maxWidth: '1400px', 
+                margin: '0 auto',
+                backgroundColor: '#fef0f0',
+                padding: '20px',
+                borderRadius: '8px',
+                border: '1px solid #e74c3c'
+              }}>
+                <Text style={{ color: '#e74c3c' }}>Error: {error}</Text>
+              </div>
+            )}
+
+            {/* Charts */}
+            {data && !loading && (
+              <div style={{ 
+                maxWidth: '1400px', 
+                margin: '0 auto',
+                display: 'grid',
+                gap: '20px'
+              }}>
+                <StepsCaloriesCard data={data.steps} />
+                <BodyBatteryChart data={data.body_battery} />
+                <HRVChart data={data.hrv} />
+                <HeartRateChart data={data.heart_rate} />
+                <StressChart data={data.stress} />
+                <SleepChart data={data.sleep} />
+                
+                {/* Activities List */}
+                {data.activities.length > 0 && (
+                  <Card style={{ padding: '20px' }}>
+                    <h3 style={{ marginBottom: '15px' }}>Activities</h3>
+                    <div style={{ display: 'grid', gap: '10px' }}>
+                      {data.activities.map((activity, index) => (
+                        <Card key={index} style={{ padding: '15px', backgroundColor: '#f9f9f9' }}>
+                          <div style={{ fontWeight: '600', color: '#27ae60', marginBottom: '5px' }}>
+                            {activity.activity_name}
+                          </div>
+                          <div style={{ fontSize: '14px', color: '#666' }}>
+                            <span style={{ marginRight: '15px' }}>
+                              Duration: {Math.round(activity.duration_seconds / 60)} min
+                            </span>
+                            {activity.avg_heart_rate && (
+                              <span style={{ marginRight: '15px' }}>
+                                Avg HR: {activity.avg_heart_rate} bpm
+                              </span>
+                            )}
+                            {activity.calories && (
+                              <span>Calories: {activity.calories}</span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#999', marginTop: '5px' }}>
+                            {activity.start_time}
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </FluentProvider>

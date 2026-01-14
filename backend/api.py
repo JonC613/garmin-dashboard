@@ -177,6 +177,30 @@ async def get_activities(target_date: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/hrv/{target_date}", tags=["Health Data"])
+async def get_hrv(target_date: str):
+    """
+    Get HRV (Heart Rate Variability) data for a specific date
+    
+    - **target_date**: Date in YYYY-MM-DD format (e.g., 2025-12-25)
+    
+    Returns time-series HRV measurements in milliseconds.
+    """
+    if not garmin_service:
+        raise HTTPException(status_code=500, detail="Garmin service not initialized")
+    
+    try:
+        data = garmin_service.get_hrv_data(target_date)
+        return {
+            "success": True,
+            "date": target_date,
+            "count": len(data),
+            "data": data
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/data/{target_date}", tags=["Combined Data"])
 async def get_all_data(target_date: str, db: Session = Depends(get_db)):
     """

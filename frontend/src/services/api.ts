@@ -71,6 +71,12 @@ export interface RestingHeartRateData {
   max_heart_rate: number | null;
 }
 
+export interface HRVData {
+  datetime: string;
+  time: string;
+  hrv_value: number;
+}
+
 export interface DashboardData {
   date: string;
   heart_rate: HeartRateData[];
@@ -80,6 +86,7 @@ export interface DashboardData {
   body_battery: BodyBatteryData[];
   steps: StepsData | null;
   resting_heart_rate: RestingHeartRateData | null;
+  hrv: HRVData[];
 }
 
 export const garminApi = {

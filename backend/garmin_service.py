@@ -300,6 +300,61 @@ class GarminService:
             logger.error(f"Error fetching steps data: {e}", exc_info=True)
             return None
     
+    def get_hrv_data(self, target_date: str):
+        """Get HRV (Heart Rate Variability) data for a specific date."""
+        logger.info(f"Fetching HRV data for {target_date}")
+        if not self.client:
+            raise Exception("Not authenticated")
+        
+        try:
+            dt = datetime.strptime(target_date, "%Y-%m-%d").date()
+            logger.debug(f"Calling get_hrv_data for date: {dt.isoformat()}")
+            hrv_data = self.client.get_hrv_data(dt.isoformat())
+            logger.debug(f"HRV data type: {type(hrv_data)}, keys: {hrv_data.keys() if isinstance(hrv_data, dict) else 'not a dict'}")
+            
+            if not hrv_data:
+                logger.warning("No HRV data returned")
+                return []
+            
+            records = []
+            hrv_readings = hrv_data.get('hrvSummary', {}).get('weeklyAvg', None)
+            last_night_avg = hrv_data.get('hrvSummary', {}).get('lastNightAvg', None)
+            
+            # Get the HRV values array if available
+            hrv_values = hrv_data.get('hrvValues', [])
+            
+            if hrv_values:
+                for entry in hrv_values:
+                    if entry and isinstance(entry, list) and len(entry) >= 2:
+                        timestamp_ms = entry[0]
+                        hrv_value = entry[1]
+                        
+                        if hrv_value is not None and hrv_value > 0:
+                            try:
+                                dt_obj = datetime.fromtimestamp(timestamp_ms / 1000)
+                                records.append({
+                                    'datetime': dt_obj.isoformat(),
+                                    'time': dt_obj.strftime('%H:%M:%S'),
+                                    'hrv_value': float(hrv_value)
+                                })
+                            except (ValueError, TypeError):
+                                continue
+            elif last_night_avg:
+                # If no detailed values, create a single record with the nightly average
+                dt_obj = datetime.strptime(target_date, "%Y-%m-%d")
+                records.append({
+                    'datetime': dt_obj.isoformat(),
+                    'time': '00:00:00',
+                    'hrv_value': float(last_night_avg)
+                })
+            
+            logger.info(f"Returning {len(records)} HRV records")
+            return records
+            
+        except Exception as e:
+            logger.error(f"Error fetching HRV data: {e}", exc_info=True)
+            return []
+    
     def get_resting_heart_rate(self, target_date: str):
         """Get resting heart rate for a specific date."""
         logger.info(f"Fetching resting heart rate for {target_date}")
@@ -367,5 +422,6 @@ class GarminService:
             'activities': self.get_activities(target_date),
             'body_battery': self.get_body_battery_data(target_date),
             'steps': self.get_steps_data(target_date),
-            'resting_heart_rate': self.get_resting_heart_rate(target_date)
+            'resting_heart_rate': self.get_resting_heart_rate(target_date),
+            'hrv': self.get_hrv_data(target_date)
         }

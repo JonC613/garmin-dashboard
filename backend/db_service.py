@@ -5,7 +5,7 @@ Database service for saving and retrieving Garmin data
 from sqlalchemy.orm import Session
 from models import (
     HeartRate, Stress, Sleep, Activity, BodyBattery, 
-    DailySteps, RestingHeartRate
+    DailySteps, RestingHeartRate, HRV
 )
 from datetime import datetime, date
 from typing import List, Dict, Any
@@ -283,6 +283,31 @@ class DatabaseService:
             raise
     
     @staticmethod
+    def save_hrv_data(db: Session, date_str: str, hrv_data: List[Dict[str, Any]]):
+        """Save HRV data to database"""
+        try:
+            data_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            
+            # Delete existing data for this date
+            db.query(HRV).filter(HRV.date == data_date).delete()
+            
+            # Insert new data
+            for item in hrv_data:
+                hrv = HRV(
+                    date=data_date,
+                    datetime=datetime.fromisoformat(item['datetime']),
+                    hrv_value=item['hrv_value']
+                )
+                db.add(hrv)
+            
+            db.commit()
+            logger.info(f"Saved {len(hrv_data)} HRV records for {date_str}")
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error saving HRV data: {e}")
+            raise
+    
+    @staticmethod
     def save_all_garmin_data(db: Session, date_str: str, data: Dict[str, Any]):
         """Save all Garmin data from API response"""
         try:
@@ -307,6 +332,9 @@ class DatabaseService:
             
             if data.get('resting_heart_rate'):
                 DatabaseService.save_resting_heart_rate(db, date_str, data['resting_heart_rate'])
+            
+            if data.get('hrv'):
+                DatabaseService.save_hrv_data(db, date_str, data['hrv'])
             
             logger.info(f"Successfully saved all Garmin data for {date_str}")
         except Exception as e:
