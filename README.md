@@ -212,6 +212,12 @@ garmin-dashboard/
 
 ⚠️ **Important**: Never commit `garmin_credentials.json` to version control. This file is included in `.gitignore`.
 
+## Privacy and safe sharing
+
+Garmin data can contain sensitive health metrics, activity routes, timestamps, and account metadata. This repository contains application code only—never commit Garmin exports, database dumps, screenshots with real data, `.env` files, or credentials.
+
+For demos and screenshots, use synthetic or fully anonymized data. Before deploying a copy, configure credentials locally through ignored files or environment variables and restrict database access appropriately.
+
 ## License
 
 MIT
